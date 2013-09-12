@@ -1,3 +1,5 @@
+#!/usr/bin/node
+
 var JSFtp = require('jsftp')
   , knox = require('knox')
   , argv = require('optimist')
