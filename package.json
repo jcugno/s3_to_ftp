@@ -1,0 +1,24 @@
+{
+  "name": "s3_to_ftp",
+  "version": "0.0.0",
+  "description": "Streams s3 files to a remote ftp",
+  "main": "index.js",
+  "dependencies": {
+    "jsftp": "~1.1.1",
+    "knox": "~0.8.6",
+    "optimist": "~0.6.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jcugno/s3_to_ftp.git"
+  },
+  "author": "Jared Cugno",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jcugno/s3_to_ftp/issues"
+  }
+}
