@@ -1,6 +1,7 @@
 #!/usr/bin/node
 
-var JSFtp = require('jsftp')
+var Client = require('ftp')
+  , ProgressBar = require('progress')
   , knox = require('knox')
   , argv = require('optimist')
     .usage('Usage: $0 -b [bucket] -h [ftp_host] -u [ftp_user] -p [ftp_pass] -f [bucket_file] -r [ftp_remote_file] -k [s3_key] -s [s3_secret]')
@@ -15,33 +16,44 @@ if (key === undefined || secret === undefined) {
   process.exit(1);
 }
 
-var client = knox.createClient({
+var s3Client = knox.createClient({
   key: key,
   secret: secret,
   bucket: argv.b
 });
 
-var ftp = new JSFtp({
+var ftpClient = new Client();
+
+ftpClient.connect({
   host : argv.h,
   user: argv.u,
-  pass: argv.p 
+  password: argv.p
 });
 
-ftp.auth(argv.u, argv.p, function(err, data) {
+ftpClient.on('ready', function() {
 
-  if (err) { console.log(err);}
+  s3Client.getFile(argv.f, function(err, res) {
 
-  client.getFile(argv.f, function(err, res) {
-  
     if (err) { return console.log(err); }
-  
-    ftp.getPutSocket(argv.r, function(err, socket) {
-      if (err) { return console.log(err); }
-      res.pipe(socket);
-    }, function(hadError) {
-      console.log(hadError);
+
+    var len = parseInt(res.headers['content-length'], 10);
+
+    var bar = new ProgressBar('  uploading [:bar] :percent :current of :total elapsed :elapsed eta :etas', {
+      complete: '=',
+      incomplete: ' ',
+      width: 20,
+      total: len 
     });
-    
+
+    res.on('data', function(chunk) {
+      bar.tick(chunk.length);
+    });
+
+    ftpClient.put(res, argv.r, function(err) {
+      if (err) { throw err; }
+      ftpClient.end();
+      console.log("Finished");
+    });
   });
 });
 
