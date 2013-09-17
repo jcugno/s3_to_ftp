@@ -4,11 +4,9 @@
   "description": "Streams s3 files to a remote ftp",
   "main": "index.js",
   "dependencies": {
-    "jsftp": "~1.1.1",
     "knox": "~0.8.6",
     "optimist": "~0.6.0",
-    "ftp": "~0.3.4",
-    "progress": "~1.0.1"
+    "ftp": "~0.3.4"
   },
   "devDependencies": {},
   "scripts": {

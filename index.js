@@ -1,7 +1,6 @@
 #!/usr/bin/node
 
 var Client = require('ftp')
-  , ProgressBar = require('progress')
   , knox = require('knox')
   , argv = require('optimist')
     .usage('Usage: $0 -b [bucket] -h [ftp_host] -u [ftp_user] -p [ftp_pass] -f [bucket_file] -r [ftp_remote_file] -k [s3_key] -s [s3_secret]')
@@ -30,30 +29,86 @@ ftpClient.connect({
   password: argv.p
 });
 
-ftpClient.on('ready', function() {
 
-  s3Client.getFile(argv.f, function(err, res) {
+function getFileFromS3(size, cb) {
 
+  var headers = {};
+  
+  if (size) {
+    headers.Range = size + '-';
+  }
+
+  s3Client.getFile(argv.f, headers, function(err, res) {
     if (err) { return console.log(err); }
 
-    var len = parseInt(res.headers['content-length'], 10);
-
-    var bar = new ProgressBar('  uploading [:bar] :percent :current of :total elapsed :elapsed eta :etas', {
-      complete: '=',
-      incomplete: ' ',
-      width: 20,
-      total: len 
+    res.on('error', function(err) {
+      console.log("Error with s3: " + err);
     });
 
-    res.on('data', function(chunk) {
-      bar.tick(chunk.length);
+    res.on('end', function() {
+      console.log("S3 ended");
     });
 
-    ftpClient.put(res, argv.r, function(err) {
-      if (err) { throw err; }
-      ftpClient.end();
-      console.log("Finished");
+    res.on('close', function() {
+      console.log("S3 closed");
     });
+
+    console.log("Starting to stream s3 -> ftp");
+
+    cb(res);
   });
+}
+
+ftpClient.on('ready', function() {
+
+  ftpClient.size(argv.r, function(err, size) {
+
+      // Assuming the err is the file not existing, good enough for now
+      // err.code will give the exact status code otherwise (550 is file not found)
+      if (err) {
+
+        getFileFromS3(function(res) {
+          ftpClient.put(res, argv.r, function(err) {
+            if (err) { throw err; }
+            ftpClient.end();
+            console.log("Finished");
+          });
+        });
+
+      } else {
+
+        console.log("Resuming download at start: " + size);
+        getFileFromS3(size, function(res) {
+
+          ftpClient.append(res, argv.r, function(err) {
+            if (err) { throw err; }
+
+            ftpClient.end();
+            console.log("Finished");
+          });
+        });
+      }
+    });
 });
 
+
+ftpClient.on('close', function(hadError) {
+  if (hadError) {
+    console.log("FTP server closed with an errror");
+  } else {
+    console.loog("FTP server closed");
+  }
+});
+
+ftpClient.on('error', function(err) {
+  console.log("FTP server had error: " + err);
+});
+
+
+ftpClient.on('end', function(){
+  console.log("FTP server ended connection");
+});
+
+ftpClient.on('greeting', function(msg) {
+  console.log(msg);
+});
