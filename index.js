@@ -33,13 +33,24 @@ ftpClient.connect({
 function getFileFromS3(size, cb) {
 
   var headers = {};
-  
-  if (size) {
-    headers.Range = size + '-';
+
+  if (typeof size === 'function') {
+    cb = size;
+    size = 0;
+  } else {
+    headers.Range = 'bytes=' + size + '-';
   }
 
   s3Client.getFile(argv.f, headers, function(err, res) {
     if (err) { return console.log(err); }
+
+    if (size && res.statusCode === 206) {
+      console.log("Resume succesful, appending to previous location");
+    } else if (size) {
+      console.log("S3 did NOT return a succesful resume status. Got the following instead: " + res.statusCode);
+      console.log("S3 should support resume, there must be something wrong with the ftp server. You may need to delete the file on the server and try again");
+      process.exit(1);
+    }
 
     res.on('error', function(err) {
       console.log("Error with s3: " + err);
