@@ -107,7 +107,7 @@ ftpClient.on('close', function(hadError) {
   if (hadError) {
     console.log("FTP server closed with an errror");
   } else {
-    console.loog("FTP server closed");
+    console.log("FTP server closed");
   }
 });
 
