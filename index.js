@@ -92,7 +92,7 @@ ftpClient.on('ready', function() {
 
         getFileFromS3(function(res) {
           ftpClient.put(res, argv.r, function(err) {
-            if (err) { throw err; }
+            if (err) { console.log(err); }
             ftpClient.end();
             console.log("Finished");
           });
@@ -104,7 +104,7 @@ ftpClient.on('ready', function() {
         getFileFromS3(size, function(res) {
 
           ftpClient.append(res, argv.r, function(err) {
-            if (err) { throw err; }
+            if (err) { console.log(err); }
 
             ftpClient.end();
             console.log("Finished");
@@ -119,7 +119,7 @@ ftpClient.on('close', function(hadError) {
   if (hadError) {
     console.log("FTP server closed with an errror");
   } else {
-    console.loog("FTP server closed");
+    console.log("FTP server closed");
   }
 });
 
