@@ -80,7 +80,7 @@ ftpClient.on('ready', function() {
 
         getFileFromS3(function(res) {
           ftpClient.put(res, argv.r, function(err) {
-            if (err) { throw err; }
+            if (err) { console.log(err); }
             ftpClient.end();
             console.log("Finished");
           });
@@ -92,7 +92,7 @@ ftpClient.on('ready', function() {
         getFileFromS3(size, function(res) {
 
           ftpClient.append(res, argv.r, function(err) {
-            if (err) { throw err; }
+            if (err) { console.log(err); }
 
             ftpClient.end();
             console.log("Finished");
