@@ -51,34 +51,34 @@ function getFileFromS3(size, cb) {
     options.Range = 'bytes=' + size + '-';
   }
 
- 
+
   s3.GetObject(options, {stream : true}, function(err, data) {
 
     if (err) { return console.log(err); }
 
-    if (size && data.StatusCode === 206) { 
+    if (size && data.StatusCode === 206) {
       console.log("Resume succesful, appending to previous location");
     } else if (size) {
-      console.log("S3 did NOT return a succesful resume status. Got the following instead: " + res.statusCode);
+      console.log("S3 did NOT return a succesful resume status. Got the following instead: " + data.StatusCode);
       console.log("S3 should support resume, there must be something wrong with the ftp server. You may need to delete the file on the server and try again");
       process.exit(1);
     }
 
-/*     res.on('error', function(err) { */
-      // console.log("Error with s3: " + err);
-    // });
-
-    // res.on('end', function() {
-      // console.log("S3 ended");
-    // });
-
-    // res.on('close', function() {
-      // console.log("S3 closed");
-    // });
-
     console.log("Starting to stream s3 -> ftp");
 
     cb(data.Stream);
+
+    data.Stream.on('end', function() {
+      console.log("S3 Ended");
+    });
+
+    data.Stream.on('close', function() {
+      console.log("S3 Closed");
+    });
+
+    data.Stream.on('error', function(err) {
+      console.log("Error with S3: " + err);
+    });
   });
 }
 
