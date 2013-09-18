@@ -1,6 +1,7 @@
 #!/usr/bin/node
 
 var Client = require('ftp')
+  , amazonS3 = require('awssum-amazon-s3')
   , knox = require('knox')
   , argv = require('optimist')
     .usage('Usage: $0 -b [bucket] -h [ftp_host] -u [ftp_user] -p [ftp_pass] -f [bucket_file] -r [ftp_remote_file] -k [s3_key] -s [s3_secret]')
@@ -14,6 +15,12 @@ if (key === undefined || secret === undefined) {
   console.error('You need to specify an S3 key and secret either as an environment variable or on the command line');
   process.exit(1);
 }
+
+var s3 = new amazonS3.S3({
+  'accessKeyId'     : key,
+  'secretAccessKey' : secret,
+  'region'          : amazonS3.US_EAST_1
+});
 
 var s3Client = knox.createClient({
   key: key,
@@ -32,41 +39,46 @@ ftpClient.connect({
 
 function getFileFromS3(size, cb) {
 
-  var headers = {};
+  var options = {
+    BucketName : argv.b,
+    ObjectName : argv.f
+  };
 
   if (typeof size === 'function') {
     cb = size;
     size = 0;
   } else {
-    headers.Range = 'bytes=' + size + '-';
+    options.Range = 'bytes=' + size + '-';
   }
 
-  s3Client.getFile(argv.f, headers, function(err, res) {
+ 
+  s3.GetObject(options, {stream : true}, function(err, data) {
+
     if (err) { return console.log(err); }
 
-    if (size && res.statusCode === 206) {
-      console.log("Resume succesful, appending to previous location");
-    } else if (size) {
-      console.log("S3 did NOT return a succesful resume status. Got the following instead: " + res.statusCode);
-      console.log("S3 should support resume, there must be something wrong with the ftp server. You may need to delete the file on the server and try again");
-      process.exit(1);
-    }
+    // if (size && data.statusCode === 206) {
+      // console.log("Resume succesful, appending to previous location");
+    // } else if (size) {
+      // console.log("S3 did NOT return a succesful resume status. Got the following instead: " + res.statusCode);
+      // console.log("S3 should support resume, there must be something wrong with the ftp server. You may need to delete the file on the server and try again");
+      // process.exit(1);
+    /* } */
 
-    res.on('error', function(err) {
-      console.log("Error with s3: " + err);
-    });
+/*     res.on('error', function(err) { */
+      // console.log("Error with s3: " + err);
+    // });
 
-    res.on('end', function() {
-      console.log("S3 ended");
-    });
+    // res.on('end', function() {
+      // console.log("S3 ended");
+    // });
 
-    res.on('close', function() {
-      console.log("S3 closed");
-    });
+    // res.on('close', function() {
+      // console.log("S3 closed");
+    // });
 
     console.log("Starting to stream s3 -> ftp");
 
-    cb(res);
+    cb(data.Stream);
   });
 }
 
